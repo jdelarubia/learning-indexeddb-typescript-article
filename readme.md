@@ -12,6 +12,10 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [02 Create object stores](#02-create-object-stores)
 
+[03 Defining primary keys](#03-defining-primary-keys)
+
+[04 Defining indexes](#04-defining-indexes)
+
 
 ## Project setup
 
@@ -83,7 +87,7 @@ It doesn't do much, just load requirejs and points to our main application file 
 
 On your */src/main.ts*, type in the following code.
 
-```typescript
+```javascript
 import * as idxdb from "./idb"; // Type hinting idb.d.ts
 import "./js/idb.js";           // idb object itself
 
@@ -109,7 +113,7 @@ The page is blank so to check that it worked open *Developer Tools* and go to th
 
 Edit your */src/main.ts* to look as follows.
 
-```typescript
+```javascript
 import * as idxdb from "./idb"; // Type hinting idb.d.ts
 import "./js/idb.js";           // idb object itself
 
@@ -139,7 +143,7 @@ Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB 
 
 Edit your */src/main.ts* once again.
 
-```typescript
+```javascript
 // ... setup and check for indexeddb support ...
 
 let dbPromise: Promise<idxdb.DB> = idb.open('test-db3', 1, (upgradeDb: idxdb.UpgradeDB) => {
@@ -160,6 +164,42 @@ let dbPromise: Promise<idxdb.DB> = idb.open('test-db3', 1, (upgradeDb: idxdb.Upg
 For each of the object stores (or tables), it checks whether it exists already and, if it doesn't, creates it.
 
 Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB and check how the three stores have been created.
+
+[toc](#toc)
+
+## 04 Defining indexes
+
+Let's crete a few indexes inside our upgradeDB callback. Indexes are special objects dependent on our stores, so we'll have to tweak the code from the last section a bit.
+
+```javascript
+// Create a database called 'test-db4', version 1.
+// Create 3 different store object each with different options and different indexes.
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db4', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    let people = {tableName: 'people', options: {keyPath: 'email'}};
+    let notes = {tableName: 'notes', options: {autoIncrement: true}};
+    let logs = {tableName: 'logs', options: {keyPath: 'id', autoIncrement: true}};
+    
+    if (!upgradeDb.objectStoreNames.contains(people.tableName)) {
+        let peopleOS: idxdb.ObjectStore = upgradeDb.createObjectStore(people.tableName, people.options);
+        peopleOS.createIndex('gender', 'gender', {unique: false});
+        peopleOS.createIndex('ssn', 'ssn', {unique: true});
+    }
+
+    if (!upgradeDb.objectStoreNames.contains(notes.tableName)) {
+        let notesOS: idxdb.ObjectStore = upgradeDb.createObjectStore(notes.tableName, notes.options);
+        notesOS.createIndex('title', 'title', {unique: false});
+    }
+
+    if (!upgradeDb.objectStoreNames.contains(people.tableName)) {
+        let logsOS: idxdb.ObjectStore = upgradeDb.createObjectStore(logs.tableName, logs.options);
+    }
+});
+```
+
+This code will create 2 indexes for our *people* object store, 1 for our *notes* store and none for the *logs* store.
+
+Open *index.html* and *developer tools*, *Aplication/IndexedDB*, Refresh IndexedDB. Check how the *test-db4* database has been created and it contains all the indexes we added earlier.
+
 
 [toc](#toc)
 
