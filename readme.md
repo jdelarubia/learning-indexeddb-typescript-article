@@ -131,4 +131,35 @@ First, ```open()``` returns a *Promise* that resolves in a *DB* object. We store
 
 We make use of the third parameter of ```open()``` which is a callback *UpgradeDB* object that is used for creating object stores.
 
+Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB and check the new store created.
+
 [toc](#toc)
+
+## 03 Defining primary keys
+
+Edit your */src/main.ts* once again.
+
+```typescript
+// ... setup and check for indexeddb support ...
+
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db3', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    let tables = [
+        {name: 'people', options: {keyPath: 'email'}},
+        {name: 'notes', options: {autoIncrement: true}},
+        {name: 'logs', options: {keyPath: 'id', autoIncrement: true}}
+    ]
+    tables.forEach((table) => {
+        // Check if the object store exists already.
+        if (!upgradeDb.objectStoreNames.contains(table.name)) {
+            upgradeDb.createObjectStore(table.name, table.options);
+        }
+    });
+});
+```
+
+For each of the object stores (or tables), it checks whether it exists already and, if it doesn't, creates it.
+
+Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB and check how the three stores have been created.
+
+[toc](#toc)
+
