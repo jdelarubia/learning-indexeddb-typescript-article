@@ -2,6 +2,17 @@
 
 This is a little tutorial based on the excellent tutorial from Google Developers, [Working with IndexedDB](https://developers.google.com/web/ilt/pwa/working-with-indexeddb), using [Jake Archibald's IDB Javascript library](https://github.com/jakearchibald/idb), but leveraging Typescript type hinting.
 
+## TOC
+
+[Project Setup](#project-setup)
+
+[00 Setting up your html](#00-setting-up-your-html)
+
+[01 Opening a database](#01-opening-a-database)
+
+[02 Create object stores](#02-create-object-stores)
+
+
 ## Project setup
 
 - Create a new directory to be the root of your project.
@@ -29,7 +40,7 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 So far, your project structure should look like this.
 
-```
+```bash
 <project-root-dir>/
 |
 +- js/
@@ -44,7 +55,7 @@ So far, your project structure should look like this.
 +- index.html
 ```
 
-## 00 Setting up your index.html
+## 00 Setting up your html
 
 Let's prepare your */index.html* for basic use.
 
@@ -65,6 +76,8 @@ Let's prepare your */index.html* for basic use.
 ```
 
 It doesn't do much, just load requirejs and points to our main application file to be generated next.
+
+[toc](#toc)
 
 ## 01 Opening a database
 
@@ -89,3 +102,33 @@ If everything went alright, you will not see any errors on your compilation, so 
 ### Experience nothingness
 
 The page is blank so to check that it worked open *Developer Tools* and go to the *Application* tab. One of the labels on the left reads *IndexedDB*, right-click on it and then *Refresh IndexedDB*. Now you see that *test-db1* has been created. Our first *IndexedDB* database.
+
+[toc](#toc)
+
+## 02 Create object stores
+
+Edit your */src/main.ts* to look as follows.
+
+```typescript
+import * as idxdb from "./idb"; // Type hinting idb.d.ts
+import "./js/idb.js";           // idb object itself
+
+if (!('indexedDB' in window)) {
+    throw new Error('Your browser doesn\'t support indexedDB');
+}
+
+// Create a database called 'test-db2', version 1.
+// Adds an object store called 'firstOS' in open's callback.
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db2', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    console.log('making a new object store');
+    if (!upgradeDb.objectStoreNames.contains('firstOS')) {
+        upgradeDb.createObjectStore('firstOS');
+    }
+});
+```
+
+First, ```open()``` returns a *Promise* that resolves in a *DB* object. We store this *Promise* in a variable for later use.
+
+We make use of the third parameter of ```open()``` which is a callback *UpgradeDB* object that is used for creating object stores.
+
+[toc](#toc)
