@@ -172,6 +172,8 @@ Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB 
 Let's crete a few indexes inside our upgradeDB callback. Indexes are special objects dependent on our stores, so we'll have to tweak the code from the last section a bit.
 
 ```javascript
+// ... setup and check for indexeddb support ...
+
 // Create a database called 'test-db4', version 1.
 // Create 3 different store object each with different options and different indexes.
 let dbPromise: Promise<idxdb.DB> = idb.open('test-db4', 1, (upgradeDb: idxdb.UpgradeDB) => {
@@ -200,6 +202,48 @@ This code will create 2 indexes for our *people* object store, 1 for our *notes*
 
 Open *index.html* and *developer tools*, *Aplication/IndexedDB*, Refresh IndexedDB. Check how the *test-db4* database has been created and it contains all the indexes we added earlier.
 
-
 [toc](#toc)
 
+## 05 Creating data
+
+We'll edit */src/main.ts* to rearrange our code as follows.
+
+```javascript
+// ... setup and check for indexeddb support ...
+
+// Create a database called 'test-db5', version 1.
+// Create a store with an auto incremental key.
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db5', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    if (!upgradeDb.objectStoreNames.contains('store')) {
+        let store = upgradeDb.createObjectStore('store', {autoIncrement: true});
+    }
+});
+// Adds an item to our store object
+dbPromise.then((db: idxdb.DB): Promise<void> => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    let item = {
+        name: 'sandwich',
+        price: 4.99,
+        description: 'A very tasty sandwich',
+        created: new Date().getTime()
+    };
+
+    store.add(item);
+    return tx.complete;
+}).then(() => {
+    console.log(`added item to the store os!`);
+}).catch((err: Error) => {
+    console.log(`Couldn\'t add item to the store os!. ${err}`);
+});
+```
+
+First we create the *database* with a storage object conviniently called 'store'.
+
+On the second chunk of code, once the database is solid, remember we created it as a *Promise*, then we create a transaction, get a reference to our store and add an object to it.
+
+Every operation is wrapped up in a transaction. If one of the operations fail, the whole transaction rolls back and our addition never happens.
+
+```.catch()``` is there to have some information prompted out if the transaction fails. For testing, just try mispelling the name of the store object. Change the line ```let store = tx.objectStore('stroe');``` and look at the error message on the Console.
+
+[toc](#toc)
