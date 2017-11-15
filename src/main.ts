@@ -38,7 +38,7 @@ let dbPromise: Promise<idxdb.DB> = idb.open('test-db6', 1, (upgradeDb: idxdb.Upg
     }
 });
 
-// Adds an item to our store object
+// Adds a few items to our store object
 dbPromise.then((db: idxdb.DB): Promise<void> => {
     let tx: idxdb.Transaction = db.transaction('foods', 'readwrite');
     let store: idxdb.ObjectStore = tx.objectStore('foods');
@@ -52,28 +52,17 @@ dbPromise.then((db: idxdb.DB): Promise<void> => {
     console.log(`Couldn\'t add items to the table!. ${err}`);
 });
 
-retrieve_all_items();
-
-// Delete one of the items
-dbPromise.then((db) => {
-    let tx = db.transaction('foods', 'readwrite');
-    let store = tx.objectStore('foods');
-    store.delete('ice cream');
-    return tx.complete;
+dbPromise.then((db: idxdb.DB): Promise<idxdb.Cursor> => {
+    let tx: idxdb.Transaction = db.transaction('foods', 'readonly');
+    let store: idxdb.ObjectStore = tx.objectStore('foods');
+    return store.openCursor();
+}).then(function logItems (cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
+    if (!cursor) return;
+    console.log(`Cursored at: ${cursor.key}`);
+    for (let field in cursor.value) {
+        console.log(cursor.value[field]);
+    }
+    return cursor.continue().then(logItems);
+}).then(() => {
+    console.log('Done cursoring');
 });
-
-retrieve_all_items();
-
-function retrieve_all_items() {
-    // Console out all items from our 'foods' table
-    dbPromise.then((db: idxdb.DB): Promise<Object[]> => {
-        let tx: idxdb.Transaction = db.transaction('foods', 'readonly');
-        let store: idxdb.ObjectStore = tx.objectStore('foods');
-        return store.getAll();
-    }).then((items) => {
-        console.log('List of items');
-        items.forEach((item) => {
-            console.log(item);
-        });
-    });
-}

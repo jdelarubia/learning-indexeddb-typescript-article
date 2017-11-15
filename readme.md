@@ -26,6 +26,9 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [09 Getting all the data](#09-getting-all-the-data)
 
+[10 Using cursors](#10-using-cursors)
+
+
 
 
 ## Project setup
@@ -442,5 +445,38 @@ function retrieve_all_items() {
 We retrieve all the items of our database by using ```.getAll()``` method.
 
 This time, I have wrapped up the code in a function I can reuse. So, for example, I add up a few items, print the content of the table, delete one o the item and finally print everything out again.
+
+[toc](#toc)
+
+## 10 Using cursors
+
+Edit, once again, our */src/main.ts*.
+
+```javascript
+// ... setup and check for indexeddb support ...
+// ... open our database ...
+// ... fill in our table from the previous section ...
+
+dbPromise.then((db: idxdb.DB): Promise<idxdb.Cursor> => {
+    let tx: idxdb.Transaction = db.transaction('foods', 'readonly');
+    let store: idxdb.ObjectStore = tx.objectStore('foods');
+    return store.openCursor();
+}).then(function logItems (cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
+    if (!cursor) return;
+    console.log(`Cursored at: ${cursor.key}`);
+    for (let field in cursor.value) {
+        console.log(cursor.value[field]);
+    }
+    return cursor.continue().then(logItems);
+}).then(() => {
+    console.log('Done cursoring');
+});
+```
+
+We start by opening a transaction and returning a Promise which will resolve to a *Cursor* which is an object pointing to the current item in the database.
+
+Note the named function which allows us to call it from inside the body of ```.then()```. The line, ```if (!cursor) return; ``` will break this loop.
+
+Open your *index.html* and *developer tools* to see the logs on the console and the table at *Application/IndexedDB*. Remember to *Refresh IndexedDB to see the table (object store).
 
 [toc](#toc)
