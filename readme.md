@@ -28,6 +28,9 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [10 Using cursors](#10-using-cursors)
 
+[11 Working with ranges and indexes](#11-working-with-ranges-and-indexes)
+
+
 
 
 
@@ -183,7 +186,7 @@ Open your index.html, developer tools, Application/IndexedDB, Refresh IndexedDB 
 
 ## 04 Defining indexes
 
-Let's crete a few indexes inside our upgradeDB callback. Indexes are special objects dependent on our stores, so we'll have to tweak the code from the last section a bit.
+Let's create a few indexes inside our upgradeDB callback. Indexes are special objects dependent on our stores, so we'll have to tweak the code from the last section a bit.
 
 ```javascript
 // ... setup and check for indexeddb support ...
@@ -479,4 +482,59 @@ Note the named function which allows us to call it from inside the body of ```.t
 
 Open your *index.html* and *developer tools* to see the logs on the console and the table at *Application/IndexedDB*. Remember to *Refresh IndexedDB to see the table (object store).
 
+Just for testing try changing the call to ```.openCursor()``` as ```.openCursor(null, 'prev')``` and compare the outputs. You should see the latter in reverse order.
+
 [toc](#toc)
+
+## 11 Working with ranges and indexes
+
+Let's see how to work with indexes and ranges. We'll edit our */src/main.ts* as usual. This time, we have tweaked our table cretion to include an index for the price. The rest of the code is the same as in the previous section.
+
+```javascript
+// ... setup and check for indexeddb support ...
+
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db6', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    if (!upgradeDb.objectStoreNames.contains('foods')) {
+        let store = upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
+        store.createIndex('price', 'price', {unique: false});
+    }
+});
+
+// ... add items to our 'foods' table ...
+
+function searchItemsByPrice(lower: number, upper: number) {
+    let range: IDBKeyRange;
+    if (lower !== 0 && upper !== 0) {
+        range = IDBKeyRange.bound(lower, upper);
+    } else if (lower === 0) {
+        range = IDBKeyRange.upperBound(upper);
+    } else {
+        range = IDBKeyRange.lowerBound(lower);
+    }
+    
+    dbPromise.then((db: idxdb.DB) => {
+        let tx: idxdb.Transaction = db.transaction(['foods'], 'readonly');
+        let store: idxdb.ObjectStore = tx.objectStore('foods');
+        let index: idxdb.Index = store.index('price');
+        return index.openCursor(range)
+    }).then(function showRange(cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
+        if (!cursor) return;
+        console.log(`Cursored at ${cursor.key}`);
+        for (let field in cursor.value) {
+            console.log(cursor.value[field]);
+        }
+        return cursor.continue().then(showRange);
+    }).then(() => {
+        console.log('Done cursoring the range!');
+    });
+}
+
+searchItemsByPrice(3.5, 3.99);
+```
+
+In our ```searchItemsByPrice()``` function, we start by defining a range. Then, we wrap the operations up into a transaction and execute it.
+
+Open *index.html* and the *developer tools*. You should be able to see just two items listed; the ones within the prices given on the function call.
+
+[toc](#toc)
+

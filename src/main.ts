@@ -35,6 +35,7 @@ let db_items = [
 let dbPromise: Promise<idxdb.DB> = idb.open('test-db6', 1, (upgradeDb: idxdb.UpgradeDB) => {
     if (!upgradeDb.objectStoreNames.contains('foods')) {
         let store = upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
+        store.createIndex('price', 'price', {unique: false});
     }
 });
 
@@ -52,17 +53,31 @@ dbPromise.then((db: idxdb.DB): Promise<void> => {
     console.log(`Couldn\'t add items to the table!. ${err}`);
 });
 
-dbPromise.then((db: idxdb.DB): Promise<idxdb.Cursor> => {
-    let tx: idxdb.Transaction = db.transaction('foods', 'readonly');
-    let store: idxdb.ObjectStore = tx.objectStore('foods');
-    return store.openCursor();
-}).then(function logItems (cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
-    if (!cursor) return;
-    console.log(`Cursored at: ${cursor.key}`);
-    for (let field in cursor.value) {
-        console.log(cursor.value[field]);
+// Indexes and ranges
+function searchItemsByPrice(lower: number, upper: number) {
+    let range: IDBKeyRange;
+    if (lower !== 0 && upper !== 0) {
+        range = IDBKeyRange.bound(lower, upper);
+    } else if (lower === 0) {
+        range = IDBKeyRange.upperBound(upper);
+    } else {
+        range = IDBKeyRange.lowerBound(lower);
     }
-    return cursor.continue().then(logItems);
-}).then(() => {
-    console.log('Done cursoring');
-});
+    
+    dbPromise.then((db: idxdb.DB) => {
+        let tx: idxdb.Transaction = db.transaction(['foods'], 'readonly');
+        let store: idxdb.ObjectStore = tx.objectStore('foods');
+        let index: idxdb.Index = store.index('price');
+        return index.openCursor(range)
+    }).then(function showRange(cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
+        if (!cursor) return;
+        console.log(`Cursored at ${cursor.key}`);
+        for (let field in cursor.value) {
+            console.log(cursor.value[field]);
+        }
+        return cursor.continue().then(showRange);
+    }).then(() => {
+        console.log('Done cursoring the range!');
+    });
+}
+searchItemsByPrice(3.5, 3.99);
