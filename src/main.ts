@@ -11,7 +11,7 @@ if (!('indexedDB' in window)) {
 // Create a store with an auto incremental key.
 let dbPromise: Promise<idxdb.DB> = idb.open('test-db5', 1, (upgradeDb: idxdb.UpgradeDB) => {
     if (!upgradeDb.objectStoreNames.contains('store')) {
-        let store = upgradeDb.createObjectStore('store', {autoIncrement: true});
+        let store = upgradeDb.createObjectStore('store', {keyPath: 'name', autoIncrement: true});
     }
 });
 // Adds an item to our store object
@@ -32,3 +32,16 @@ dbPromise.then((db: idxdb.DB): Promise<void> => {
 }).catch((err: Error) => {
     console.log(`Couldn\'t add item to the store os!. ${err}`);
 });
+
+// Reads an item from our database
+dbPromise.then((db) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readonly');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    return store.get('sandwich');
+}).then((item: Object) => {
+    console.log('The item from our database is:');
+    console.dir(item);
+}).catch((error: Error) => {
+    console.error(`Could not retrieve item from database. ${error}`)
+});
+

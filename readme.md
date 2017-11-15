@@ -16,6 +16,10 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [04 Defining indexes](#04-defining-indexes)
 
+[05 Creating data](#05-creating-data)
+
+[06 Reading data](#06-reading-data)
+
 
 ## Project setup
 
@@ -242,8 +246,54 @@ First we create the *database* with a storage object conviniently called 'store'
 
 On the second chunk of code, once the database is solid, remember we created it as a *Promise*, then we create a transaction, get a reference to our store and add an object to it.
 
+We add our item to the database, we use the method ```.add()``` on the store object we want to add it on.
+
 Every operation is wrapped up in a transaction. If one of the operations fail, the whole transaction rolls back and our addition never happens.
 
 ```.catch()``` is there to have some information prompted out if the transaction fails. For testing, just try mispelling the name of the store object. Change the line ```let store = tx.objectStore('stroe');``` and look at the error message on the Console.
+
+[toc](#toc)
+
+## 06 Reading data
+
+We'll edit our */src/main.ts* to show as follows.
+
+```javascript
+// ... setup and check for indexeddb support ...
+
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db5', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    if (!upgradeDb.objectStoreNames.contains('store')) {
+        let store = upgradeDb.createObjectStore('store', {keyPath: 'name', autoIncrement: true});
+    }
+});
+
+// Add an item to our database
+dbPromise.then((db: idxdb.DB): Promise<void> => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    let item = {
+        name: 'sandwich', price: 4.99, description: 'A very tasty sandwich',
+        created: new Date().getTime()
+    };
+    store.add(item);
+    return tx.complete;
+}).then(() => {
+    console.log(`added item to the store os!`);
+}).catch((err: Error) => {
+    console.log(`Couldn\'t add item to the store os!. ${err}`);
+});
+
+// Reads an item from our database
+dbPromise.then((db) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readonly');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    return store.get('sandwich');
+}).then((item: Object) => {
+    console.log('The item from our database is:');
+    console.dir(item);
+});
+```
+
+The ```.get()``` method returns a *Promise* that give us either the item retrieved from the database or *undefined* if it could not find it.
 
 [toc](#toc)
