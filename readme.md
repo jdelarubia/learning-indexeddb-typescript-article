@@ -24,6 +24,8 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [08 Deleting data](#08-deleting-data)
 
+[09 Getting all the data](#09-getting-all-the-data)
+
 
 
 ## Project setup
@@ -357,5 +359,88 @@ dbPromise.then((db: idxdb.DB) => {
 We need to pass on the *key* of the item that we want deleted to the ```.delete()``` method.
 
 Open *index.html* and check the results on the *developer tools*. The database should show no records if everything wen alright.
+
+[toc](#toc)
+
+## 09 Getting all the data
+
+Edit your */src/main.ts* to look like my code. Note that I have changed the name of the table and added a few things for testing.
+
+```javascript
+// ... setup and check for indexeddb support ...
+
+let db_items = [
+    {
+        menu: 'sandwich', price: 4.99,
+        description: 'A very tasty sandwich',
+        created: new Date().getTime()
+    },
+    {
+        menu: 'ice cream', price: 3.99,
+        description: 'Double ice cream with toppings',
+        created: new Date().getTime()
+    },
+    {
+        menu: 'hamburger', price: 2.99,
+        description: 'Beefburger with salad and cheese',
+        created: new Date().getTime()
+    },
+    {
+        menu: 'pizza', price: 3.50,
+        description: 'Vegetal pizza',
+        created: new Date().getTime()
+    }
+];
+
+let dbPromise: Promise<idxdb.DB> = idb.open('test-db6', 1, (upgradeDb: idxdb.UpgradeDB) => {
+    if (!upgradeDb.objectStoreNames.contains('foods')) {
+        let store = upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
+    }
+});
+
+// Adds an item to our store object
+dbPromise.then((db: idxdb.DB): Promise<void> => {
+    let tx: idxdb.Transaction = db.transaction('foods', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('foods');
+    db_items.forEach((item) => {
+        store.add(item);
+    });
+    return tx.complete;
+}).then(() => {
+    console.log(`items added to the table!`);
+}).catch((err: Error) => {
+    console.log(`Couldn\'t add items to the table!. ${err}`);
+});
+
+retrieve_all_items();
+
+// Delete one of the items
+dbPromise.then((db) => {
+    let tx = db.transaction('foods', 'readwrite');
+    let store = tx.objectStore('foods');
+    store.delete('ice cream');
+    return tx.complete;
+});
+
+retrieve_all_items();
+
+function retrieve_all_items() {
+    // Console out all items from our 'foods' table
+    dbPromise.then((db: idxdb.DB): Promise<Object[]> => {
+        let tx: idxdb.Transaction = db.transaction('foods', 'readonly');
+        let store: idxdb.ObjectStore = tx.objectStore('foods');
+        return store.getAll();
+    }).then((items) => {
+        console.log('List of items');
+        items.forEach((item) => {
+            console.log(item);
+        });
+    });
+}
+```
+
+We retrieve all the items of our database by using ```.getAll()``` method.
+
+This time, I have wrapped up the code in a function I can reuse. So, for example, I add up a few items, print the content of the table, delete one o the item and finally print everything out again.
 
 [toc](#toc)
