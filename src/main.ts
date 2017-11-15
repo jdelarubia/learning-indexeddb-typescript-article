@@ -34,7 +34,7 @@ dbPromise.then((db: idxdb.DB): Promise<void> => {
 });
 
 // Reads an item from our database
-dbPromise.then((db) => {
+dbPromise.then((db: idxdb.DB) => {
     let tx: idxdb.Transaction = db.transaction('store', 'readonly');
     let store: idxdb.ObjectStore = tx.objectStore('store');
     return store.get('sandwich');
@@ -46,7 +46,7 @@ dbPromise.then((db) => {
 });
 
 // Update an item from our database
-dbPromise.then((db) => {
+dbPromise.then((db: idxdb.DB) => {
     let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
     let store: idxdb.ObjectStore = tx.objectStore('store');
     var item = {
@@ -60,4 +60,16 @@ dbPromise.then((db) => {
     console.log('item updated!');
 }).catch((error: Error) => {
     console.error(`Could not update the item. ${error}`);
+});
+
+// Deleting an item from our database
+dbPromise.then((db: idxdb.DB) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    store.delete('sandwich');
+    return tx.complete;
+}).then(() => {
+    console.log('Item deleted');
+}).catch((error: Error) => {
+    console.error(`Could not delete the item. ${error}`);
 });

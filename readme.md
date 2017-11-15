@@ -22,6 +22,8 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [07 Updating data](#07-updating-data)
 
+[08 Deleting data](#08-deleting-data)
+
 
 
 ## Project setup
@@ -287,7 +289,7 @@ dbPromise.then((db: idxdb.DB): Promise<void> => {
 });
 
 // Reads an item from our database
-dbPromise.then((db) => {
+dbPromise.then((db: idxdb.DB) => {
     let tx: idxdb.Transaction = db.transaction('store', 'readonly');
     let store: idxdb.ObjectStore = tx.objectStore('store');
     return store.get('sandwich');
@@ -310,7 +312,8 @@ We update an item in our database by calling the ```.put()``` method passing our
 // ... open our database ...
 // ... create the item ...
 // ... read the item ...
-dbPromise.then((db) => {
+
+dbPromise.then((db: idxdb.DB) => {
     let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
     let store: idxdb.ObjectStore = tx.objectStore('store');
     var item = {
@@ -326,5 +329,33 @@ dbPromise.then((db) => {
 ```
 
 Compile the code and open *index.html* on your browse. If everything wen alright, you should see a few messages on the console and our item updated in our indexedDB database.
+
+[toc](#toc)
+
+## 08 Deleting data
+
+Next up, let's delete our just updated item from our database. Again, edit */src/main.ts*.
+
+```javascript
+// ... setup and check for indexeddb support ...
+// ... open our database ...
+// ... create the item ...
+// ... read the item ...
+// ... update the item ...
+
+// Deleting an item from our database
+dbPromise.then((db: idxdb.DB) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    store.delete('sandwich');
+    return tx.complete;
+}).then(() => {
+    console.log('Item deleted');
+});
+```
+
+We need to pass on the *key* of the item that we want deleted to the ```.delete()``` method.
+
+Open *index.html* and check the results on the *developer tools*. The database should show no records if everything wen alright.
 
 [toc](#toc)
