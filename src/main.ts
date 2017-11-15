@@ -45,3 +45,19 @@ dbPromise.then((db) => {
     console.error(`Could not retrieve item from database. ${error}`)
 });
 
+// Update an item from our database
+dbPromise.then((db) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    var item = {
+        name: 'sandwich', price: 99.99,
+        description: 'A very tasty, but quite expensive, sandwich!',
+        created: new Date().getTime()
+    };
+    store.put(item);
+    return tx.complete;
+}).then(() => {
+    console.log('item updated!');
+}).catch((error: Error) => {
+    console.error(`Could not update the item. ${error}`);
+});

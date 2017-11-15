@@ -20,6 +20,9 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [06 Reading data](#06-reading-data)
 
+[07 Updating data](#07-updating-data)
+
+
 
 ## Project setup
 
@@ -295,5 +298,33 @@ dbPromise.then((db) => {
 ```
 
 The ```.get()``` method returns a *Promise* that give us either the item retrieved from the database or *undefined* if it could not find it.
+
+[toc](#toc)
+
+## 07 Updating data
+
+We update an item in our database by calling the ```.put()``` method passing our item with the changes we want to make.
+
+```javascript
+// ... setup and check for indexeddb support ...
+// ... open our database ...
+// ... create the item ...
+// ... read the item ...
+dbPromise.then((db) => {
+    let tx: idxdb.Transaction = db.transaction('store', 'readwrite');
+    let store: idxdb.ObjectStore = tx.objectStore('store');
+    var item = {
+        name: 'sandwich', price: 99.99,
+        description: 'A very tasty, but quite expensive, sandwich!',
+        created: new Date().getTime()
+    };
+    store.put(item);
+    return tx.complete;
+}).then(() => {
+    console.log('item updated!');
+});
+```
+
+Compile the code and open *index.html* on your browse. If everything wen alright, you should see a few messages on the console and our item updated in our indexedDB database.
 
 [toc](#toc)
