@@ -30,6 +30,8 @@ This is a little tutorial based on the excellent tutorial from Google Developers
 
 [11 Working with ranges and indexes](#11-working-with-ranges-and-indexes)
 
+[12 Using database versioning](#12-using-database-versioning)
+
 
 
 
@@ -538,3 +540,59 @@ Open *index.html* and the *developer tools*. You should be able to see just two 
 
 [toc](#toc)
 
+## 12 Using database versioning
+
+Edit your */src/main.ts* to look like the one as follows. Assume you still have the database sample items from previous section.
+
+```javascript
+// Main process
+let dbPromise: Promise<idxdb.DB> = create_db();
+init_db(dbPromise);
+
+// Create a database called 'test-db7', version 3.
+function create_db(): Promise<idxdb.DB> {
+
+    let dbPromise: Promise<idxdb.DB> = idb.open('test-db7', 3, (upgradeDb: idxdb.UpgradeDB) => {
+        switch (upgradeDb.oldVersion) {
+            case 0:
+            if (!upgradeDb.objectStoreNames.contains('foods')) {
+                upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
+            }
+            case 1:
+            var store = upgradeDb.transaction.objectStore('foods');
+            store.createIndex('price', 'price', {unique: false});
+            case 3:
+            var store = upgradeDb.transaction.objectStore('foods');
+            store.createIndex('description', 'description', {unique: false});
+        }
+    });
+    return dbPromise;
+}
+
+// Adds a few items to our store object
+function init_db(dbPromise: Promise<idxdb.DB>) {
+
+    dbPromise.then((db: idxdb.DB): Promise<void> => {
+        let tx: idxdb.Transaction = db.transaction('foods', 'readwrite');
+        let store: idxdb.ObjectStore = tx.objectStore('foods');
+        db_items.forEach((item) => {
+            store.add(item);
+        });
+        return tx.complete;
+    }).then(() => {
+        console.log(`items added to the table!`);
+    }).catch((err: Error) => {
+        console.log(`Couldn\'t add items to the table!. ${err}`);
+    });
+}
+```
+
+Open *index.html* and check the *developer tools* to see the code in action.
+
+The code is rearranged and the functionality is now wrapped up into two functions: ```create_db()``` and ```init_db()```. Code in ```init_db()``` is the same as in the previous sections. ```create_db()``` however makes use of database versioning. 
+
+Note how there is not any ```break``` between case statements inside the switch. This way, the code can flow through all the cases in case the database does not exist any more in your browser.
+
+
+
+[toc](#toc)

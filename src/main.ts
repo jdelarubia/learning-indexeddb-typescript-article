@@ -30,54 +30,44 @@ let db_items = [
     }
 ];
 
-// Create a database called 'test-db6', version 1.
-// Create a store using name as a key.
-let dbPromise: Promise<idxdb.DB> = idb.open('test-db6', 1, (upgradeDb: idxdb.UpgradeDB) => {
-    if (!upgradeDb.objectStoreNames.contains('foods')) {
-        let store = upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
-        store.createIndex('price', 'price', {unique: false});
-    }
-});
+// Main process
+let dbPromise: Promise<idxdb.DB> = create_db();
+init_db(dbPromise);
+
+// Create a database called 'test-db7', version 3.
+function create_db(): Promise<idxdb.DB> {
+
+    let dbPromise: Promise<idxdb.DB> = idb.open('test-db7', 3, (upgradeDb: idxdb.UpgradeDB) => {
+        switch (upgradeDb.oldVersion) {
+            case 0:
+            if (!upgradeDb.objectStoreNames.contains('foods')) {
+                upgradeDb.createObjectStore('foods', {keyPath: 'menu'});
+            }
+            case 1:
+            var store = upgradeDb.transaction.objectStore('foods');
+            store.createIndex('price', 'price', {unique: false});
+            case 3:
+            var store = upgradeDb.transaction.objectStore('foods');
+            store.createIndex('description', 'description', {unique: false});
+        }
+    });
+    return dbPromise;
+}
 
 // Adds a few items to our store object
-dbPromise.then((db: idxdb.DB): Promise<void> => {
-    let tx: idxdb.Transaction = db.transaction('foods', 'readwrite');
-    let store: idxdb.ObjectStore = tx.objectStore('foods');
-    db_items.forEach((item) => {
-        store.add(item);
-    });
-    return tx.complete;
-}).then(() => {
-    console.log(`items added to the table!`);
-}).catch((err: Error) => {
-    console.log(`Couldn\'t add items to the table!. ${err}`);
-});
+function init_db(dbPromise: Promise<idxdb.DB>) {
 
-// Indexes and ranges
-function searchItemsByPrice(lower: number, upper: number) {
-    let range: IDBKeyRange;
-    if (lower !== 0 && upper !== 0) {
-        range = IDBKeyRange.bound(lower, upper);
-    } else if (lower === 0) {
-        range = IDBKeyRange.upperBound(upper);
-    } else {
-        range = IDBKeyRange.lowerBound(lower);
-    }
-    
-    dbPromise.then((db: idxdb.DB) => {
-        let tx: idxdb.Transaction = db.transaction(['foods'], 'readonly');
+    dbPromise.then((db: idxdb.DB): Promise<void> => {
+        let tx: idxdb.Transaction = db.transaction('foods', 'readwrite');
         let store: idxdb.ObjectStore = tx.objectStore('foods');
-        let index: idxdb.Index = store.index('price');
-        return index.openCursor(range)
-    }).then(function showRange(cursor: idxdb.Cursor): Promise<idxdb.Cursor>|any {
-        if (!cursor) return;
-        console.log(`Cursored at ${cursor.key}`);
-        for (let field in cursor.value) {
-            console.log(cursor.value[field]);
-        }
-        return cursor.continue().then(showRange);
+        db_items.forEach((item) => {
+            store.add(item);
+        });
+        return tx.complete;
     }).then(() => {
-        console.log('Done cursoring the range!');
+        console.log(`items added to the table!`);
+    }).catch((err: Error) => {
+        console.log(`Couldn\'t add items to the table!. ${err}`);
     });
 }
-searchItemsByPrice(3.5, 3.99);
+
